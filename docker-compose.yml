@@ -1,0 +1,51 @@
+--- 
+networks: 
+  app-tier: 
+    driver: bridge
+services: 
+  mongo: 
+    container_name: backend-mongo
+    environment: 
+      - MONGO_INITDB_ROOT_USERNAME=backend_demo
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    image: mongo
+    networks: 
+      - app-tier
+    restart: always
+    volumes: 
+      - "mongobkp:/data/db"
+  mysql-service: 
+    image: mysql:8
+    container_name: mysql-service
+    environment: 
+      - MYSQL_ROOT_HOST=%
+      - MYSQL_ROOT_PASSWORD=password
+      - MYSQL_DATABASE=backend_demo
+    networks: 
+      - app-tier
+    ports: 
+      - "3306:3306"
+    restart: always
+    volumes: 
+      - "my-db:/var/lib/mysql"
+  node-app: 
+    build: 
+      context: "."
+      dockerfile: Dockerfile
+    container_name: node-app
+    depends_on: 
+      - mysql-service
+      - mongo
+    environment: 
+      - MONGO_DB_HOSTNAME=mongo
+      - MONGO_DB_USERNAME=backend_demo
+      - MONGO_DB_PASSWORD=password
+    networks: 
+      - app-tier
+    ports: 
+      - "51005:51005"
+volumes: 
+  mongobkp: 
+    driver: local
+  my-db: 
+    driver: local
