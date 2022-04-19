@@ -1,51 +1,85 @@
---- 
-networks: 
-  app-tier: 
+version: '3'
+networks:
+  app-tier:
     driver: bridge
-services: 
-  mongo: 
+services:
+  mongo:
     container_name: backend-mongo
-    environment: 
+    environment:
       - MONGO_INITDB_ROOT_USERNAME=backend_demo
       - MONGO_INITDB_ROOT_PASSWORD=password
-    image: mongo
-    networks: 
+    image: mongo:4
+    networks:
       - app-tier
     restart: always
-    volumes: 
+    volumes:
       - "mongobkp:/data/db"
-  mysql-service: 
+  mysql-service:
     image: mysql:8
     container_name: mysql-service
-    environment: 
+    environment:
       - MYSQL_ROOT_HOST=%
       - MYSQL_ROOT_PASSWORD=password
       - MYSQL_DATABASE=backend_demo
-    networks: 
+    networks:
       - app-tier
-    ports: 
-      - "3306:3306"
+    ports:
+      - "3307:3306"
     restart: always
-    volumes: 
+    volumes:
       - "my-db:/var/lib/mysql"
-  node-app: 
-    build: 
+  node-app:
+    build:
       context: "."
       dockerfile: Dockerfile
     container_name: node-app
-    depends_on: 
+    depends_on:
       - mysql-service
       - mongo
-    environment: 
+    environment:
       - MONGO_DB_HOSTNAME=mongo
       - MONGO_DB_USERNAME=backend_demo
       - MONGO_DB_PASSWORD=password
-    networks: 
+    networks:
       - app-tier
-    ports: 
+    ports:
       - "51005:51005"
-volumes: 
-  mongobkp: 
+    restart: always
+
+  webserver:
+    image: nginx:mainline-alpine
+    container_name: webserver
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+      - "443:443"
+    volumes:
+      - web-root:/var/www/html
+      - ./nginx-conf:/etc/nginx/conf.d
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+    depends_on:
+      - node-app
+    networks:
+      - app-tier
+  certbot:
+    image: certbot/certbot
+    container_name: certbot
+    volumes:
+      - certbot-etc:/etc/letsencrypt
+      - certbot-var:/var/lib/letsencrypt
+      - web-root:/var/www/html
+    depends_on:
+      - webserver
+    command: certonly --webroot --webroot-path=/var/www/html --email contact@santoshbatulla.com --agree-tos --no-eff-email --staging -d santoshbatulla.com  -d www.santoshbatulla.com
+volumes:
+  mongobkp:
     driver: local
-  my-db: 
+  my-db:
+    driver: local
+  web-root:
+    driver: local
+  certbot-etc:
+    driver: local
+  certbot-var:
     driver: local
