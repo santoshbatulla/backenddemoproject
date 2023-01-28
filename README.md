@@ -4,7 +4,7 @@ BackendDemoProject using Dcoker Compose
 
 Clone the repository using
 
-git clone https://gitlab.com/batulla.santosh/backenddemoproject.git
+git clone https://github.com/santoshbatulla/backenddemoproject.git
 
 Run docker-compose up -d --build
 
